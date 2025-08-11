@@ -1,0 +1,159 @@
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      APP_DB: ${APP_DB}
+      AIRFLOW_DB: ${AIRFLOW_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/postgresql-init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d postgres || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+
+  opensearch:
+    image: opensearchproject/opensearch:2.11.0
+    container_name: researchai-opensearch
+    # If you're on Apple Silicon and hit issues, uncomment:
+    # platform: linux/amd64
+    environment:
+      - discovery.type=single-node
+      - DISABLE_SECURITY_PLUGIN=${DISABLE_SECURITY_PLUGIN}
+      - OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g
+    ulimits:
+      memlock: { soft: -1, hard: -1 }
+      nofile: { soft: 65536, hard: 65536 }
+    ports:
+      - "${OPENSEARCH_PORT}:9200"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:9200/_cluster/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 40
+
+  minio:
+    image: minio/minio
+    container_name: researchai-minio
+    command: server /data --console-address ":${MINIO_CONSOLE_PORT}"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    ports:
+      - "${MINIO_API_PORT}:9000"      # S3 API
+      - "${MINIO_CONSOLE_PORT}:9001"  # Web console
+    volumes:
+      - minio:/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:9000/minio/health/ready || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: researchai-ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0:11434    # ensure it listens on all IFs
+    ports:
+      - "${OLLAMA_PORT}:11434"
+    volumes:
+      - ollama:/root/.ollama
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://127.0.0.1:11434/api/tags || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 60
+      start_period: 30s
+    # If you're on Apple Silicon and it still fails, try forcing arch:
+    # platform: linux/arm64/v8
+
+  airflow:
+    image: apache/airflow:2.9.3
+    container_name: researchai-airflow
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${AIRFLOW_DB}
+      AIRFLOW__CORE__EXECUTOR: ${AIRFLOW__CORE__EXECUTOR}
+      AIRFLOW__WEBSERVER__RBAC: ${AIRFLOW__WEBSERVER__RBAC}
+      _AIRFLOW_WWW_USER_USERNAME: ${AIRFLOW_ADMIN_USER}
+      _AIRFLOW_WWW_USER_PASSWORD: ${AIRFLOW_ADMIN_PWD}
+      _AIRFLOW_WWW_USER_EMAIL: ${AIRFLOW_ADMIN_EMAIL}
+      _AIRFLOW_WWW_USER_FIRSTNAME: Admin
+      _AIRFLOW_WWW_USER_LASTNAME: User
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - airflow_logs:/opt/airflow/logs
+      - airflow_plugins:/opt/airflow/plugins
+    command: >
+      bash -lc "
+        airflow db migrate &&
+        airflow users create
+          --username ${AIRFLOW_ADMIN_USER}
+          --password ${AIRFLOW_ADMIN_PWD}
+          --firstname Admin --lastname User
+          --role Admin --email ${AIRFLOW_ADMIN_EMAIL} || true &&
+        airflow webserver & airflow scheduler
+      "
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:8080/health || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 40
+
+  api:
+    build:
+      context: ./docker/api
+      dockerfile: Dockerfile
+    container_name: researchai-api
+    depends_on:
+      postgres:
+        condition: service_healthy
+      opensearch:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${APP_DB}
+      OPENSEARCH_URL: http://opensearch:9200
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      OLLAMA_URL: http://ollama:11434
+      PORT: 8000
+    ports:
+      - "${API_PORT}:8000"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:8000/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
+  ui:
+    build:
+      context: ./docker/ui
+      dockerfile: Dockerfile
+    container_name: researchai-ui
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      API_BASE_URL: http://api:8000
+    ports:
+      - "${UI_PORT}:7860"
+
+volumes:
+  pgdata:
+  minio:
+  ollama:
+  airflow_logs:
+  airflow_plugins:
