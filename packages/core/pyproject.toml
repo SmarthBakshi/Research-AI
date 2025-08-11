@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "researchai-core"
+version = "0.1.0"
+description = "Core domain models and interfaces for ResearchAI"
+readme = "README.md"
+authors = ["Smarth Bakshi <bakshismarth.20@gmail.com>"]
+license = "MIT"
+packages = [{ include = "researchai_core", from = "src" }]
+
+[tool.poetry.dependencies]
+python = "^3.12"
+pydantic = "^2.8"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.2"
+ruff = "^0.5"
+mypy = "^1.10"
+
+[build-system]
+requires = ["poetry-core>=1.9.0"]
+build-backend = "poetry.core.masonry.api"
