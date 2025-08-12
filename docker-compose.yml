@@ -53,23 +53,41 @@ services:
       timeout: 5s
       retries: 20
 
-  ollama:
-    image: ollama/ollama:latest
-    container_name: researchai-ollama
+  # ollama:
+  #   image: ollama/ollama:latest
+  #   container_name: researchai-ollama
+  #   environment:
+  #     - OLLAMA_HOST=0.0.0.0:11434    # ensure it listens on all IFs
+  #   ports:
+  #     - "${OLLAMA_PORT}:11434"
+  #   volumes:
+  #     - ollama:/root/.ollama
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "curl -fs http://127.0.0.1:11434/api/tags || exit 1"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 60
+  #     start_period: 30s
+  #   # If you're on Apple Silicon and it still fails, try forcing arch:
+  #   # platform: linux/arm64/v8
+
+  airflow-init:
+    image: apache/airflow:2.9.3
+    depends_on:
+      postgres:
+        condition: service_healthy
     environment:
-      - OLLAMA_HOST=0.0.0.0:11434    # ensure it listens on all IFs
-    ports:
-      - "${OLLAMA_PORT}:11434"
-    volumes:
-      - ollama:/root/.ollama
-    healthcheck:
-      test: ["CMD-SHELL", "curl -fs http://127.0.0.1:11434/api/tags || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 60
-      start_period: 30s
-    # If you're on Apple Silicon and it still fails, try forcing arch:
-    # platform: linux/arm64/v8
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${AIRFLOW_DB}
+    entrypoint: ["/bin/bash", "-c"]
+    command: >
+      set -euo pipefail;
+      airflow db init;
+      airflow users create
+        --username ${AIRFLOW_ADMIN_USER}
+        --password ${AIRFLOW_ADMIN_PWD}
+        --firstname Admin --lastname User
+        --role Admin --email ${AIRFLOW_ADMIN_EMAIL} || true;
+      echo "Airflow init done."
 
   airflow:
     image: apache/airflow:2.9.3
@@ -77,6 +95,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
     environment:
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${AIRFLOW_DB}
       AIRFLOW__CORE__EXECUTOR: ${AIRFLOW__CORE__EXECUTOR}
@@ -92,21 +112,14 @@ services:
       - ./dags:/opt/airflow/dags
       - airflow_logs:/opt/airflow/logs
       - airflow_plugins:/opt/airflow/plugins
-    command: >
-      bash -lc "
-        airflow db migrate &&
-        airflow users create
-          --username ${AIRFLOW_ADMIN_USER}
-          --password ${AIRFLOW_ADMIN_PWD}
-          --firstname Admin --lastname User
-          --role Admin --email ${AIRFLOW_ADMIN_EMAIL} || true &&
-        airflow webserver & airflow scheduler
-      "
+    # Use the image's default entrypoint (airflow) and just tell it to start the webserver
+    command: webserver
     healthcheck:
-      test: ["CMD-SHELL", "curl -fs http://localhost:8080/health || exit 1"]
+      test: ["CMD-SHELL","curl -fs http://localhost:8080/health || exit 1"]
       interval: 20s
       timeout: 5s
       retries: 40
+      start_period: 60s
 
   api:
     build:
@@ -120,15 +133,15 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
-      ollama:
-        condition: service_healthy
+      # ollama:
+      #   condition: service_healthy
     environment:
       DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${APP_DB}
       OPENSEARCH_URL: http://opensearch:9200
       MINIO_ENDPOINT: http://minio:9000
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
-      OLLAMA_URL: http://ollama:11434
+      # OLLAMA_URL: http://ollama:11434
       PORT: 8000
     ports:
       - "${API_PORT}:8000"
