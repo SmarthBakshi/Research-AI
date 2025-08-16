@@ -21,3 +21,4 @@ open-data/
 resources/plots/
 .DS_Store
 __MACOSX/
+.notebooks/

@@ -31,8 +31,13 @@ class ArxivClient:
         for entry in root.findall("{http://www.w3.org/2005/Atom}entry"):
             title = entry.find("{http://www.w3.org/2005/Atom}title").text
             published = entry.find("{http://www.w3.org/2005/Atom}published").text
+            id_tag = entry.find("{http://www.w3.org/2005/Atom}id")
+            arxiv_id = id_tag.text.split("/")[-1] if id_tag is not None else None
+            
             entries.append({
-                "title": title.strip(),
-                "published": published,
+            "title": title.strip(),
+            "published": published,
+            "arxiv_id": arxiv_id,  # 👈 add this
             })
+
         return entries
