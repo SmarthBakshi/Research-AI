@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 class ArxivConfig(BaseModel):
     base_url: str = "http://export.arxiv.org/api/query"
@@ -9,4 +9,4 @@ class ArxivConfig(BaseModel):
     delay_seconds: float = 3.0  # for rate-limiting
     retries: int = 3
     retry_backoff: float = 2.0  # exponential backoff
-    start_date: datetime = Field(default_factory=lambda: datetime.utcnow() - timedelta(days=7))
+    start_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc) - timedelta(days=7))
