@@ -92,12 +92,16 @@ services:
   airflow:
     image: apache/airflow:2.9.3
     container_name: researchai-airflow
+    build:
+      context: .
+      dockerfile: infra/airflow/Dockerfile
     depends_on:
       postgres:
         condition: service_healthy
       airflow-init:
         condition: service_completed_successfully
     environment:
+      PYTHONPATH: /opt/researchai
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${AIRFLOW_DB}
       AIRFLOW__CORE__EXECUTOR: ${AIRFLOW__CORE__EXECUTOR}
       AIRFLOW__WEBSERVER__RBAC: ${AIRFLOW__WEBSERVER__RBAC}
@@ -109,9 +113,13 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - ./dags:/opt/airflow/dags
-      - airflow_logs:/opt/airflow/logs
-      - airflow_plugins:/opt/airflow/plugins
+    - ./:/opt/researchai/
+    - ./dags:/opt/airflow/dags
+    - ./data:/opt/researchai/data 
+    - ./services:/opt/researchai/services
+    - airflow_logs:/opt/airflow/logs
+    - airflow_plugins:/opt/airflow/plugins
+
     # Use the image's default entrypoint (airflow) and just tell it to start the webserver
     command: webserver
     healthcheck:
