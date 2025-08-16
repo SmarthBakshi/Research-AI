@@ -6,8 +6,11 @@ authors = ["Smarth Bakshi <bakshismarth.20@gmail.com>"]
 license = "MIT"
 readme = "README.md"
 packages = [
-  { include = "core", from = "core/src" },
-  { include = "api", from = "api/src" }
+  { include = "researchai_core", from = "core/src" },
+  { include = "api", from = "api/src" },
+    { include = "services", from = "services/" },
+    { include = "scripts", from = "scripts/" },
+    { include = "tests", from = "tests/" }
 ]
 
 [tool.poetry.dependencies]
@@ -16,6 +19,8 @@ requests = "^2.31.0"
 tenacity = "^8.2.3"
 pydantic = "^2.7.1"
 services = "^0.1.1"
+boto3 = "^1.40.11"
+python-dotenv = "^1.1.1"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.0"
@@ -26,3 +31,6 @@ mypy = "^1.8"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
