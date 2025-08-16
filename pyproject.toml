@@ -1,0 +1,27 @@
+[tool.poetry]
+name = "research-ai"
+version = "0.1.0"
+description = "Modular research ingestion and metadata platform"
+authors = ["Smarth Bakshi <bakshismarth.20@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+packages = [
+  { include = "core", from = "core/src" },
+  { include = "api", from = "api/src" }
+]
+
+[tool.poetry.dependencies]
+python = "^3.12"
+requests = "^2.31.0"
+tenacity = "^8.2.3"
+pydantic = "^2.7.1"
+
+[tool.poetry.group.dev.dependencies]
+black = "^24.0"
+pytest = "^8.2"
+ruff = "^0.4.0"
+mypy = "^1.8"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
