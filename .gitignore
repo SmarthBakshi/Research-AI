@@ -13,5 +13,6 @@ resources/
 lib/
 .env
 .env.*
+.envrc
 !.env.example
 *.txt
