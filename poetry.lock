@@ -164,7 +164,7 @@ version = "8.2.1"
 description = "Composable command line interface toolkit"
 optional = false
 python-versions = ">=3.10"
-groups = ["dev"]
+groups = ["main", "dev"]
 files = [
     {file = "click-8.2.1-py3-none-any.whl", hash = "sha256:61a3265b914e850b85317d0b3109c7f8cd35a670f963866005d6ef1d5175a12b"},
     {file = "click-8.2.1.tar.gz", hash = "sha256:27c491cc05d968d271d5a1db13e3b5a184636d9d930f148c50b038f0d0646202"},
@@ -179,12 +179,12 @@ version = "0.4.6"
 description = "Cross-platform colored terminal text."
 optional = false
 python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,!=3.5.*,!=3.6.*,>=2.7"
-groups = ["dev"]
-markers = "platform_system == \"Windows\" or sys_platform == \"win32\""
+groups = ["main", "dev"]
 files = [
     {file = "colorama-0.4.6-py2.py3-none-any.whl", hash = "sha256:4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6"},
     {file = "colorama-0.4.6.tar.gz", hash = "sha256:08695f5cb7ed6e0531a20572697297273c47b8cae5a63ffc6d6ed5c201be6e44"},
 ]
+markers = {main = "platform_system == \"Windows\"", dev = "platform_system == \"Windows\" or sys_platform == \"win32\""}
 
 [[package]]
 name = "idna"
@@ -563,6 +563,21 @@ files = [
 ]
 
 [[package]]
+name = "services"
+version = "0.1.1"
+description = "A Python package for helpful tooling."
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "services-0.1.1-py2.py3-none-any.whl", hash = "sha256:d267e6a80c2edf7341b0eba027e14a7b1645d5c5e2e81737a18237d241224e17"},
+    {file = "services-0.1.1.tar.gz", hash = "sha256:fb508e10a47f6c8efa232c3a5446542cf81fa4bcd8afa69c7ab824ff45ef0ea5"},
+]
+
+[package.dependencies]
+Click = ">=6.0"
+
+[[package]]
 name = "tenacity"
 version = "8.5.0"
 description = "Retry code until it succeeds"
@@ -626,4 +641,4 @@ zstd = ["zstandard (>=0.18.0)"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12"
-content-hash = "2d2eb6726b3380c4991287a89671623298cc22fde026253a5070ae71fb3afc53"
+content-hash = "1d15a0c4a8a1f607367c72bd7d359ac4d473bb5ac50a69ae2e73d161b3d73ec7"
