@@ -76,18 +76,20 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    environment:
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${AIRFLOW_DB}
     entrypoint: ["/bin/bash", "-c"]
     command: >
-      set -euo pipefail;
+      set -e;
       airflow db init;
-      airflow users create
-        --username ${AIRFLOW_ADMIN_USER}
-        --password ${AIRFLOW_ADMIN_PWD}
-        --firstname Admin --lastname User
-        --role Admin --email ${AIRFLOW_ADMIN_EMAIL} || true;
-      echo "Airflow init done."
+      airflow users create \
+        --username ${AIRFLOW_ADMIN_USER} \
+        --password ${AIRFLOW_ADMIN_PWD} \
+        --firstname Admin \
+        --lastname User \
+        --role Admin \
+        --email ${AIRFLOW_ADMIN_EMAIL} || true;
+      echo "✅ Airflow init complete."
+    environment:
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${AIRFLOW_DB}
 
   airflow:
     image: apache/airflow:2.9.3
