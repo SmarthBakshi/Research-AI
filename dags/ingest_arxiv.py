@@ -1,10 +1,10 @@
 from airflow import DAG
-from airflow.operators.python import PythonOperator
+from airflow.decorators import task
 from datetime import datetime
 import json
 from pathlib import Path
 
-from services.ingestion.arxiv.minio_utils import ingest_pdfs_from_metadata
+from services.ingestion.arxiv.runner import ingest_pdfs_from_metadata
 
 default_args = {
     "owner": "airflow",
@@ -12,13 +12,18 @@ default_args = {
     "retries": 1,
 }
 
-def run_ingestion():
+@task
+def load_metadata():
     metadata_path = Path("/opt/researchai/data/arxiv/metadata.json")
     if not metadata_path.exists():
-        raise FileNotFoundError(f"Metadata file not found: {metadata_path}")
+        raise FileNotFoundError(f"❌ Metadata file not found: {metadata_path}")
     with metadata_path.open("r", encoding="utf-8") as f:
         metadata = json.load(f)
-    ingest_pdfs_from_metadata(metadata)
+    return metadata
+
+@task
+def ingest_metadata(metadata):
+    return ingest_pdfs_from_metadata(metadata)
 
 with DAG(
     dag_id="ingest_arxiv_pdf",
@@ -28,8 +33,6 @@ with DAG(
     description="Download and store arXiv PDFs into MinIO",
     tags=["arxiv", "minio", "ingestion"]
 ) as dag:
-
-    ingest_task = PythonOperator(
-        task_id="ingest_arxiv_pdfs",
-        python_callable=run_ingestion,
-    )
+    
+    metadata = load_metadata()
+    ingest_metadata(metadata)
