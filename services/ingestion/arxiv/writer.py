@@ -14,15 +14,20 @@ load_dotenv()
 class MinIOWriter:
     def __init__(self):
         self.bucket = os.getenv("MINIO_BUCKET", "researchai")
+        
+        # Dynamically set endpoint depending on context
+        endpoint_url = os.getenv("MINIO_ENDPOINT", "http://localhost:9000")
+        
         self.s3 = boto3.client(
             "s3",
-            endpoint_url=f"http://localhost:{os.getenv('MINIO_API_PORT', '9000')}",
+            endpoint_url=endpoint_url,
             aws_access_key_id=os.getenv("MINIO_ROOT_USER"),
             aws_secret_access_key=os.getenv("MINIO_ROOT_PASSWORD"),
             config=Config(signature_version="s3v4"),
             region_name="us-east-1",
         )
         ensure_bucket_exists(self.bucket, self.s3)
+
 
     def _hash_content(self, content: bytes) -> str:
         return hashlib.sha256(content).hexdigest()
