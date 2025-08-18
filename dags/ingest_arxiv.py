@@ -3,56 +3,47 @@ from datetime import datetime
 from pathlib import Path
 import json
 import logging
-from typing import List, Dict, Any
 
 from services.ingestion.arxiv.runner import ingest_pdfs_from_metadata
-
-# Set up logger
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 @dag(
     schedule=None,
     start_date=datetime(2024, 1, 1),
     catchup=False,
     tags=["arxiv", "minio"],
-    description="DAG to download and store arXiv PDFs into MinIO using metadata."
+    description="Ingest arXiv PDFs into MinIO using metadata JSON"
 )
-def ingest_arxiv_pdf():s
+def ingest_arxiv_pdf():
     """
-    DAG to ingest arXiv PDFs into MinIO using metadata stored as JSON.
+    DAG to read arXiv metadata and download/upload corresponding PDFs to MinIO.
     """
 
     @task
-    def read_metadata() -> List[Dict[str, Any]]:
+    def read_metadata() -> list[dict]:
         """
-        Read arXiv metadata from a JSON file.
+        Read the metadata JSON file containing arXiv paper entries.
 
-        :returns: List of metadata dictionaries for each arXiv entry.
-        :rtype: List[Dict[str, Any]]
-        :raises FileNotFoundError: If the metadata file is not found.
+        :returns: List of metadata dictionaries
+        :rtype: list[dict]
         """
         metadata_path = Path("/opt/researchai/data/arxiv/metadata.json")
         if not metadata_path.exists():
             raise FileNotFoundError(f"Metadata file not found: {metadata_path}")
         
+        logging.info(f"📄 Reading metadata from {metadata_path}")
         with metadata_path.open("r", encoding="utf-8") as f:
-            metadata = json.load(f)
-
-        logger.info(f"✅ Loaded {len(metadata)} metadata entries from {metadata_path}")
-        return metadata
+            return json.load(f)
 
     @task
-    def ingest(metadata: List[Dict[str, Any]]) -> None:
+    def ingest(metadata: list[dict]) -> None:
         """
-        Ingest PDFs for each arXiv entry using the metadata.
+        Ingest PDFs from arXiv metadata and store them in MinIO.
 
-        :param metadata: List of dictionaries, each representing one arXiv paper's metadata.
-        :type metadata: List[Dict[str, Any]]
+        :param metadata: List of arXiv paper metadata
+        :type metadata: list[dict]
         """
-        logger.info("🚀 Starting ingestion of PDFs...")
+        logging.info(f"🚀 Starting ingestion for {len(metadata)} records")
         ingest_pdfs_from_metadata(metadata)
-        logger.info("✅ Finished ingesting all PDFs.")
 
     metadata = read_metadata()
     ingest(metadata)
