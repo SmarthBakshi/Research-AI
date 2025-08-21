@@ -91,16 +91,16 @@ It monitors the entire system, especially:
 - ✅ **Modular UI (Gradio)** for demo and testing
 - ✅ **Dockerized**, CI-ready, extensible
 
----
+<!-- --- -->
 
-## 📊 Performance Snapshot
+<!-- ## 📊 Performance Snapshot
 
 | Metric             | Value            |
 |--------------------|------------------|
 | Ingestion Rate     | ~100 PDFs/min    |
 | p95 Query Latency  | 1.2s             |
 | Retrieval Quality  | Recall@10 = 0.84 |
-| Cost per Query     | $0.004 (est.)    |
+| Cost per Query     | $0.004 (est.)    | -->
 
 ---
 
@@ -118,7 +118,7 @@ It monitors the entire system, especially:
 | Observability | Langfuse (planned), Logs, Metrics        |
 | DevOps        | GitHub Actions, Pre-commit, Testing      |
 
----
+<!-- --- -->
 
 ---
 
