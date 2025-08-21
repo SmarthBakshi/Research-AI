@@ -19,7 +19,7 @@ An end-to-end Retrieval-Augmented Generation (RAG) system designed to ingest, pa
 ---
 ## ⇢ Data Flow 
 
-![Diagram GIF](docs/architecture.gif)
+![Diagram GIF](docs/architecture.gif) 
 
 
 ### 🔄 Primary Data Flow (Papers → Answers)
