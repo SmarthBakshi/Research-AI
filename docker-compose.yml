@@ -72,13 +72,17 @@ services:
   #   # platform: linux/arm64/v8
 
   airflow-init:
-    image: apache/airflow:2.9.3
+    image: researchai-airflow:2.9.0
+    build:
+      context: .
+      dockerfile: infra/airflow/Dockerfile
     depends_on:
       postgres:
         condition: service_healthy
     entrypoint: ["/bin/bash", "-c"]
     command: >
       set -e;
+      export PATH="/home/airflow/.local/bin:$PATH";
       airflow db init;
       airflow users create \
         --username ${AIRFLOW_ADMIN_USER} \
@@ -92,7 +96,7 @@ services:
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${AIRFLOW_DB}
 
   airflow:
-    image: apache/airflow:2.9.3
+    image: researchai-airflow:2.9.0
     container_name: researchai-airflow
     build:
       context: .
@@ -113,18 +117,13 @@ services:
       _AIRFLOW_WWW_USER_FIRSTNAME: Admin
       _AIRFLOW_WWW_USER_LASTNAME: User
       MINIO_ENDPOINT: http://minio:9000
-
     ports:
       - "8080:8080"
     volumes:
-    - ./:/opt/researchai/
-    - ./dags:/opt/airflow/dags
-    - ./data:/opt/researchai/data 
-    - ./services:/opt/researchai/services
-    - airflow_logs:/opt/airflow/logs
-    - airflow_plugins:/opt/airflow/plugins
-
-    # Use the image's default entrypoint (airflow) and just tell it to start the webserver
+      # Mount only what Airflow needs; :delegated helps macOS I/O
+      - ./dags:/opt/airflow/dags:delegated
+      - ./plugins:/opt/airflow/plugins:delegated
+      - airflow_logs:/opt/airflow/logs
     command: webserver
     healthcheck:
       test: ["CMD-SHELL","curl -fs http://localhost:8080/health || exit 1"]

@@ -1,7 +1,6 @@
 __pycache__
 *.pyc
 *.pyo
-*.pyd
 *.pkl
 mlruns/
 mlartifacts/
@@ -22,3 +21,13 @@ resources/plots/
 .DS_Store
 __MACOSX/
 .notebooks/
+__pycache__/
+*.pyc
+*.pyo
+*.db
+*.log
+*.sqlite
+data/
+logs/
+tests/
+.dockerignore
