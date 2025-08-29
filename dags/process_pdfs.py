@@ -1,8 +1,6 @@
 import os 
 from airflow import DAG
 from airflow.decorators import task
-from airflow.utils.dates import days_ago
-from airflow.utils.trigger_rule import TriggerRule
 from datetime import datetime
 from services.processing.extractors.base import PdfExtractor
 from services.processing.ocr.tesseract_ocr import TesseractOCR
@@ -20,7 +18,7 @@ default_args = {
 with DAG(
     dag_id="process_pdfs",
     default_args=default_args,
-    schedule_interval=None,
+    schedule=None,
     catchup=False,
     description="Extract text from PDFs, chunk, and store in DB",
     tags=["researchai", "processing", "pc24"]
@@ -28,32 +26,62 @@ with DAG(
 
     @task()
     def process_each_pdf(key: str):
-        extractor = PdfExtractor()
-        ocr = TesseractOCR()
-        normalizer = TextNormalizer(remove_latex=True)
-        chunker = Chunker()
+        print(f"🧪 STARTING: {key}")
+        try:
+            # Step 1: Initialize components
+            print("🔧 Initializing components...")
+            extractor = PdfExtractor()
+            ocr = TesseractOCR()
+            normalizer = TextNormalizer(remove_latex=True)
+            chunker = Chunker()
 
-        # Download from MinIO
-        pdf_path = download_file(key)
+            # Step 2: Download PDF from MinIO
+            print(f"📥 Downloading PDF from MinIO: {key}")
+            pdf_path = download_file(bucket_name="researchai", object_name=key)
+            print(f"✅ PDF downloaded to: {pdf_path}")
 
-        # Try primary extraction
-        text = extractor.extract(pdf_path)
-        if not text:
-            text = ocr.extract(pdf_path)
+            # Step 3: Try PDF-based text extraction
+            print("🔍 Trying primary PDF text extraction...")
+            text = extractor.extract(pdf_path)
+            if not text:
+                print("⚠️ Primary extraction failed. Trying OCR...")
+                text = ocr.extract(pdf_path)
 
-        if not text:
-            raise ValueError(f"❌ Could not extract text from {key}")
+            if not text:
+                error_msg = f"❌ Could not extract any text from {key}"
+                print(error_msg)
+                raise ValueError(error_msg)
 
-        normalized = normalizer.clean(text)
-        chunks = chunker.chunk(normalized, source=key)
-        write_chunks_to_db(chunks)
+            print("🧹 Normalizing extracted text...")
+            normalized = normalizer.clean(text)
 
-        return f"✅ Processed {key}"
+            print("📦 Chunking normalized text...")
+            chunks = chunker.chunk(normalized, source=key)
+
+            print(f"🗃 Writing {len(chunks)} chunks to database...")
+            write_chunks_to_db(chunks)
+
+            success_msg = f"✅ Processed {key} successfully with {len(chunks)} chunks."
+            print(success_msg)
+            return {
+                "key": key,
+                "status": "success",
+                "num_chunks": len(chunks)
+            }
+
+        except Exception as e:
+            error_msg = f"🔥 ERROR while processing {key}: {str(e)}"
+            print(error_msg)
+            raise  # Let Airflow handle retries
+
 
     @task()
     def list_pdf_keys():
         bucket = os.getenv("MINIO_BUCKET", "researchai")
-        return list_files(bucket)  
+        files = list_files(bucket)
+        print(f"Found {len(files)} files in bucket '{bucket}'")
+        return files
 
     # ✅ Correct dynamic mapping
-    process_each_pdf.expand(key=list_pdf_keys())
+    keys = list_pdf_keys()
+    process_each_pdf.expand(key=keys)
