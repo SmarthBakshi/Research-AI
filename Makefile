@@ -4,6 +4,11 @@ up:
 	@echo "🚀 Starting all services..."
 	DOCKER_BUILDKIT=1 docker compose up -d
 
+build-up:
+	@echo "🔨 Building and starting all services..."
+	DOCKER_BUILDKIT=1 docker compose build
+	docker compose up -d --build
+
 down:
 	@echo "🛑 Stopping and removing containers and volumes..."
 	docker compose down -v
