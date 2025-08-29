@@ -8,9 +8,9 @@ readme = "README.md"
 packages = [
   { include = "researchai_core", from = "core/src" },
   { include = "api", from = "api/src" },
-    { include = "services", from = "services/" },
-    { include = "scripts", from = "scripts/" },
-    { include = "tests", from = "tests/" }
+  { include = "services", from = "services/" },
+  { include = "scripts", from = "scripts/" },
+  { include = "tests", from = "tests/" }
 ]
 
 [tool.poetry.dependencies]
@@ -21,7 +21,9 @@ pydantic = "^2.7.1"
 services = "^0.1.1"
 boto3 = "^1.40.11"
 python-dotenv = "^1.1.1"
-apache-airflow = "^3.0.4"
+pdfminer-six = "^20250506"
+
+# NOTE: apache-airflow is removed from here to avoid re-installing it during Docker builds.
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.0"
