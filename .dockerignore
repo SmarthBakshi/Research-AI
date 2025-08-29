@@ -31,3 +31,23 @@ data/
 logs/
 tests/
 .dockerignore
+.git
+.venv
+venv
+__pycache__/
+*.pyc
+logs/
+data/
+tests/
+.dockerignore
+Dockerfile
+docs/
+*.drawio
+*.png
+*.gif
+*.ipynb
+# IDE
+.vscode/
+.idea/
+# macOS
+.DS_Store
