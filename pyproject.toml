@@ -8,9 +8,9 @@ readme = "README.md"
 packages = [
   { include = "researchai_core", from = "core/src" },
   { include = "api", from = "api/src" },
-    { include = "services", from = "services/" },
-    { include = "scripts", from = "scripts/" },
-    { include = "tests", from = "tests/" }
+  { include = "services", from = "services/" },
+  { include = "scripts", from = "scripts/" },
+  { include = "tests", from = "tests/" }
 ]
 
 [tool.poetry.dependencies]

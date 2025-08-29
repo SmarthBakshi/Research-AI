@@ -107,6 +107,10 @@ services:
       airflow-init:
         condition: service_completed_successfully
     environment:
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT}
       PYTHONPATH: /opt/researchai
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${AIRFLOW_DB}
       AIRFLOW__CORE__EXECUTOR: ${AIRFLOW__CORE__EXECUTOR}
@@ -116,11 +120,12 @@ services:
       _AIRFLOW_WWW_USER_EMAIL: ${AIRFLOW_ADMIN_EMAIL}
       _AIRFLOW_WWW_USER_FIRSTNAME: Admin
       _AIRFLOW_WWW_USER_LASTNAME: User
-      MINIO_ENDPOINT: http://minio:9000
     ports:
       - "8080:8080"
     volumes:
       # Mount only what Airflow needs; :delegated helps macOS I/O
+      - ./data:/opt/airflow/data
+      - ./data:/opt/researchai/data
       - ./dags:/opt/airflow/dags:delegated
       - ./plugins:/opt/airflow/plugins:delegated
       - airflow_logs:/opt/airflow/logs

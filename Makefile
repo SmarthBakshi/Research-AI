@@ -16,6 +16,30 @@ ps:
 	@echo "📦 Listing container statuses..."
 	docker compose ps
 
+# ----------- Airflow DB Init -----------
+
+init-airflow:
+	@echo "🐍 Setting up Airflow DB and user..."
+	@export AIRFLOW_ADMIN_USER=admin && \
+	export AIRFLOW_ADMIN_PWD=admin && \
+	export AIRFLOW_ADMIN_EMAIL=admin@example.com && \
+	docker compose run --rm --no-deps --entrypoint bash airflow -lc "airflow db init" && \
+	docker compose run --rm --no-deps --entrypoint bash airflow -lc "airflow users create \
+		--username $$AIRFLOW_ADMIN_USER \
+		--password $$AIRFLOW_ADMIN_PWD \
+		--firstname Admin \
+		--lastname User \
+		--role Admin \
+		--email $$AIRFLOW_ADMIN_EMAIL || true"
+
+start-airflow:
+	@echo "🚀 Starting Airflow container and scheduler..."
+	docker compose up -d airflow
+	docker compose run --rm --no-deps --entrypoint bash airflow -lc "airflow scheduler"
+
+airflow-reset: down init-airflow start-airflow
+	@echo "✅ Airflow has been reset and started."
+
 # ----------- 🛠️ Rebuild targets -----------
 
 rebuild-airflow:
