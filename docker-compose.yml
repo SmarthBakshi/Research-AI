@@ -14,6 +14,10 @@ services:
       interval: 10s
       timeout: 5s
       retries: 15
+    networks:
+      - researchai-network
+    ports:
+      - "5435:5432"
 
   opensearch:
     image: opensearchproject/opensearch:2.11.0
@@ -52,6 +56,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 20
+    networks:
+      - researchai-network
 
   # ollama:
   #   image: ollama/ollama:latest
@@ -94,6 +100,8 @@ services:
       echo "✅ Airflow init complete."
     environment:
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${AIRFLOW_DB}
+    networks:
+      - researchai-network
 
   airflow:
     image: researchai-airflow:2.9.0
@@ -141,6 +149,8 @@ services:
       timeout: 5s
       retries: 40
       start_period: 60s
+    networks:
+      - researchai-network
 
   api:
     build:
@@ -191,3 +201,7 @@ volumes:
   ollama:
   airflow_logs:
   airflow_plugins:
+
+networks:
+    researchai-network:
+      driver: bridge
