@@ -3,10 +3,25 @@ import os
 
 
 class TextNormalizer:
-    def __init__(self, remove_latex: bool = False):
+    def __init__(self, remove_latex: bool = True):
         self.remove_latex = remove_latex
 
-    def clean(self, text: str) -> str:
+    def clean(self, text):
+        # --- NEW: coerce any ExtractResult/bytes/etc to str ---
+        # If the extractor returned an object (e.g., dataclass with .text)
+        if hasattr(text, "text"):
+            text = text.text
+
+        if text is None:
+            return ""
+
+        if isinstance(text, bytes):
+            text = text.decode("utf-8", "ignore")
+
+        if not isinstance(text, str):
+            # last-resort coercion
+            text = str(text)
+
         # Encode and decode to normalize any weird characters
         text = text.encode("utf-8", "ignore").decode("utf-8")
 
