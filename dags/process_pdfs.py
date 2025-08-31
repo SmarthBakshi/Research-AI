@@ -86,6 +86,13 @@ with DAG(
             print(f"🗃 Writing {len(chunks)} chunks to database...")
             write_chunks_to_db(chunks)
 
+            if os.path.exists(pdf_path):
+                try:        
+                    os.remove(pdf_path)
+                    print(f"✅ Deleted local file: {pdf_path}")
+                except Exception as cleanup_err:
+                    print(f"⚡️ Failed to delete {pdf_path}: {cleanup_err}") 
+            
             # after successful DB write
             success_msg = f"✅ Processed {key} successfully with {len(chunks)} chunks."
             print(success_msg)
