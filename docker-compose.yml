@@ -107,6 +107,7 @@ services:
       airflow-init:
         condition: service_completed_successfully
     environment:
+      AIRFLOW__LOGGING__REMOTE_LOGGING: "False"
       AIRFLOW__CORE__LOAD_EXAMPLES: "False"
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
@@ -120,6 +121,9 @@ services:
       _AIRFLOW_WWW_USER_EMAIL: ${AIRFLOW_ADMIN_EMAIL}
       _AIRFLOW_WWW_USER_FIRSTNAME: Admin
       _AIRFLOW_WWW_USER_LASTNAME: User
+      AIRFLOW__SCHEDULER__PROCESSOR_TIMEOUT: "300"
+      AIRFLOW__SCHEDULER__MIN_FILE_PROCESS_INTERVAL: "5"
+      AIRFLOW__SCHEDULER__PROCESSOR_POLL_INTERVAL: "2"
     ports:
       - "8080:8080"
     volumes:
@@ -128,6 +132,7 @@ services:
       - ./data:/opt/researchai/data
       - ./dags:/opt/airflow/dags:delegated
       - ./plugins:/opt/airflow/plugins:delegated
+      - ./services:/opt/researchai/services:delegated
       - airflow_logs:/opt/airflow/logs
     command: webserver
     healthcheck:
