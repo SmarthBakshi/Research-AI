@@ -24,7 +24,7 @@ with DAG(
     schedule=None,
     catchup=False,
     max_active_runs=1,
-    max_active_tasks=50,
+    max_active_tasks=4,
     description="Extract text from PDFs, chunk, and store in DB",
     tags=["researchai", "processing", "pc24"]
 ) as dag:
