@@ -4,7 +4,7 @@ sys.path.append("/opt/researchai")
 import os 
 from airflow import DAG
 from airflow.decorators import task
-from datetime import datetime
+from datetime import datetime, timedelta
 from services.processing.extractors.hybrid_extractor import HybridPdfExtractor
 from services.processing.ocr.tesseract_ocr import TesseractOCR
 from services.processing.normalization.text_normaliser import TextNormalizer
@@ -29,7 +29,7 @@ with DAG(
     tags=["researchai", "processing", "pc24"]
 ) as dag:
 
-    @task.execution_timeout(timedelta(minutes=10))
+    @task(execution_timeout=timedelta(minutes=10))
     def process_each_pdf(key: str):
         print(f"🧪 STARTING: {key}")
         try:
