@@ -8,12 +8,12 @@ load_dotenv()
 
 # Connect to Postgres
 conn = psycopg2.connect(
-    host=os.getenv("POSTGRES_HOST", "localhost"),
-    port=os.getenv("POSTGRES_PORT", "5435"),
-    dbname=os.getenv("POSTGRES_DB", "researchai"),
-    user=os.getenv("POSTGRES_USER", "airflow"),
-    password=os.getenv("POSTGRES_PASSWORD", "airflow"),
-)
+    dbname=os.getenv("APP_DB"),
+    user=os.getenv("POSTGRES_USER"),
+    password=os.getenv("POSTGRES_PASSWORD"),
+    host=os.getenv("POSTGRES_HOST"),
+    port=os.getenv("POSTGRES_PORT")
+))
 
 cursor = conn.cursor()
 
