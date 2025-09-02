@@ -141,6 +141,7 @@ services:
       - ./dags:/opt/airflow/dags:delegated
       - ./plugins:/opt/airflow/plugins:delegated
       - ./services:/opt/researchai/services:delegated
+      - ./scripts:/opt/researchai/scripts
       - airflow_logs:/opt/airflow/logs
     command: webserver
     healthcheck:
