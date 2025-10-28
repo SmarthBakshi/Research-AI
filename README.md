@@ -17,6 +17,14 @@ An end-to-end Retrieval-Augmented Generation (RAG) system designed to ingest, pa
 - Meet p95 latency < 1.5 seconds per query
 
 ---
+
+## 📚 Documentation
+
+- **[📖 Complete Codebase Guide](docs/CODEBASE_GUIDE.md)** - Deep dive into the entire codebase, architecture, and design decisions
+- **[⚡ Workflow Quick Start](docs/WORKFLOW_QUICKSTART.md)** - Step-by-step guide to running the pipeline
+- **[🏗️ Architecture Overview](docs/ARCHITECTURE.md)** - System architecture, component interactions, and data flows
+
+---
 ## ⇢ Data Flow 
 
 ![Diagram GIF](docs/architecture.gif) 
