@@ -50,26 +50,35 @@ with DAG(
             result = extractor.extract(pdf_path)
             used_ocr = False
 
-            # Handle object/tuple/string returns gracefully
+            # Extract text from ExtractResult object
             text = None
             if result is None:
                 text = None
+            elif hasattr(result, "full_text"):
+                # ExtractResult object has full_text property
+                text = result.full_text
+                used_ocr = any(page.source == "ocr" for page in result.pages) if hasattr(result, "pages") else False
             elif hasattr(result, "text"):
                 text = result.text
                 used_ocr = getattr(result, "used_ocr", False) or False
             elif isinstance(result, (tuple, list)) and result:
                 text = result[0]
             else:
-                text = result
+                # Fallback: convert to string (this should NOT happen normally)
+                text = str(result) if result else None
 
             if not text:
                 print("⚠️ Primary extraction returned empty. Trying OCR...")
                 ocr_result = ocr.extract(pdf_path)
-                if hasattr(ocr_result, "text"):
+                if hasattr(ocr_result, "full_text"):
+                    # OCR also returns ExtractResult with full_text
+                    text = ocr_result.full_text
+                    used_ocr = True
+                elif hasattr(ocr_result, "text"):
                     text = ocr_result.text
-                    used_ocr = True if getattr(ocr_result, "used_ocr", True) else True
+                    used_ocr = True
                 else:
-                    text = ocr_result
+                    text = str(ocr_result) if ocr_result else None
                     used_ocr = True
 
             if not text:

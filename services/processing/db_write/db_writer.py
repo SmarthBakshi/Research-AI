@@ -23,6 +23,7 @@ class Chunk(Base):
     :param chunk_index: Index of the chunk within the document
     :param chunk_text: Text content of the chunk
     :param created_at: Timestamp of chunk insertion
+    :param indexed_at: Timestamp of when chunk was indexed in OpenSearch
     """
     __tablename__ = 'chunks'
 
@@ -31,6 +32,7 @@ class Chunk(Base):
     chunk_index = Column(Integer, nullable=False)
     chunk_text = Column(Text, nullable=False)
     created_at = Column(TIMESTAMP, default=datetime.utcnow)
+    indexed_at = Column(TIMESTAMP, nullable=True)
 
 def get_engine():
     """

@@ -38,6 +38,29 @@ services:
       interval: 15s
       timeout: 5s
       retries: 40
+      start_period: 60s  # Give OpenSearch time to initialize before checking
+    networks:
+      - researchai-network
+
+  opensearch-dashboards:
+    image: opensearchproject/opensearch-dashboards:2.11.0
+    container_name: researchai-opensearch-dashboards
+    depends_on:
+      opensearch:
+        condition: service_healthy
+    environment:
+      - OPENSEARCH_HOSTS=http://opensearch:9200
+      - DISABLE_SECURITY_DASHBOARDS_PLUGIN=${DISABLE_SECURITY_PLUGIN}
+    ports:
+      - "5601:5601"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:5601/api/status || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 60s
+    networks:
+      - researchai-network
 
   minio:
     image: minio/minio
@@ -59,23 +82,23 @@ services:
     networks:
       - researchai-network
 
-  # ollama:
-  #   image: ollama/ollama:latest
-  #   container_name: researchai-ollama
-  #   environment:
-  #     - OLLAMA_HOST=0.0.0.0:11434    # ensure it listens on all IFs
-  #   ports:
-  #     - "${OLLAMA_PORT}:11434"
-  #   volumes:
-  #     - ollama:/root/.ollama
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "curl -fs http://127.0.0.1:11434/api/tags || exit 1"]
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 60
-  #     start_period: 30s
-  #   # If you're on Apple Silicon and it still fails, try forcing arch:
-  #   # platform: linux/arm64/v8
+  ollama:
+    image: ollama/ollama:latest
+    container_name: researchai-ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0:11434
+    ports:
+      - "${OLLAMA_PORT:-11434}:11434"
+    volumes:
+      - ollama:/root/.ollama
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://127.0.0.1:11434/api/tags || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 60
+      start_period: 30s
+    networks:
+      - researchai-network
 
   airflow-init:
     image: researchai-airflow:2.9.0
@@ -86,18 +109,19 @@ services:
       postgres:
         condition: service_healthy
     entrypoint: ["/bin/bash", "-c"]
-    command: >
-      set -e;
-      export PATH="/home/airflow/.local/bin:$PATH";
-      airflow db init;
-      airflow users create \
-        --username ${AIRFLOW_ADMIN_USER} \
-        --password ${AIRFLOW_ADMIN_PWD} \
-        --firstname Admin \
-        --lastname User \
-        --role Admin \
-        --email ${AIRFLOW_ADMIN_EMAIL} || true;
-      echo "✅ Airflow init complete."
+    command:
+      - |
+        set -e
+        export PATH="/home/airflow/.local/bin:$PATH"
+        airflow db init
+        airflow users create \
+          --username ${AIRFLOW_ADMIN_USER} \
+          --password ${AIRFLOW_ADMIN_PWD} \
+          --firstname Admin \
+          --lastname User \
+          --role Admin \
+          --email ${AIRFLOW_ADMIN_EMAIL} || true
+        echo "✅ Airflow init complete."
     environment:
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${AIRFLOW_DB}
     networks:
@@ -120,8 +144,18 @@ services:
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
       MINIO_ENDPOINT: ${MINIO_ENDPOINT}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_BUCKET: ${MINIO_BUCKET:-researchai}
       PYTHONPATH: /opt/researchai
+      # PostgreSQL connection for Airflow metadata DB
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${AIRFLOW_DB}
+      # PostgreSQL credentials for DAGs to use (db_writer.py needs these)
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      APP_DB: ${APP_DB}
       AIRFLOW__CORE__EXECUTOR: ${AIRFLOW__CORE__EXECUTOR}
       AIRFLOW__WEBSERVER__RBAC: ${AIRFLOW__WEBSERVER__RBAC}
       _AIRFLOW_WWW_USER_USERNAME: ${AIRFLOW_ADMIN_USER}
@@ -131,7 +165,9 @@ services:
       _AIRFLOW_WWW_USER_LASTNAME: User
       AIRFLOW__SCHEDULER__PROCESSOR_TIMEOUT: "300"
       AIRFLOW__SCHEDULER__MIN_FILE_PROCESS_INTERVAL: "5"
-      AIRFLOW__SCHEDULER__PROCESSOR_POLL_INTERVAL: "2"
+      AIRFLOW__SCHEDULER__SCHEDULER_IDLE_SLEEP_TIME: "2"
+      OPENSEARCH_HOST: ${OPENSEARCH_HOST}
+      OPENSEARCH_PORT: ${OPENSEARCH_PORT}
     ports:
       - "8080:8080"
     volumes:
@@ -143,7 +179,8 @@ services:
       - ./services:/opt/researchai/services:delegated
       - ./scripts:/opt/researchai/scripts
       - airflow_logs:/opt/airflow/logs
-    command: webserver
+    command: >
+      bash -c "airflow scheduler & airflow webserver"
     healthcheck:
       test: ["CMD-SHELL","curl -fs http://localhost:8080/health || exit 1"]
       interval: 20s
@@ -173,15 +210,20 @@ services:
       MINIO_ENDPOINT: http://minio:9000
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
-      # OLLAMA_URL: http://ollama:11434
+      OLLAMA_URL: http://ollama:11434
       PORT: 8000
     ports:
       - "${API_PORT}:8000"
+    volumes:
+      - ./services:/opt/researchai/services:ro
     healthcheck:
       test: ["CMD-SHELL", "curl -fs http://localhost:8000/healthz || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 30
+      start_period: 120s  # Give it 2 minutes grace period while dependencies start
+    networks:
+      - researchai-network
 
   ui:
     build:
@@ -195,6 +237,8 @@ services:
       API_BASE_URL: http://api:8000
     ports:
       - "${UI_PORT}:7860"
+    networks:
+      - researchai-network
 
 volumes:
   pgdata:

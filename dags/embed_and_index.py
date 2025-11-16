@@ -1,7 +1,9 @@
 from airflow.decorators import dag, task
 from datetime import datetime, timedelta
-from embedder.huggingface_embedder import HuggingFaceEmbedder
-from store.opensearch_store import OpenSearchStore
+import sys
+sys.path.insert(0, '/opt/researchai')
+from services.embedding.huggingface_embedder import HuggingFaceEmbedder
+from services.search.opensearch_store import OpenSearchStore
 import psycopg2
 import os
 
@@ -22,7 +24,7 @@ def embed_and_index():
         )
         cur = conn.cursor()
         cur.execute("""
-            SELECT chunk_id, chunk_text, source_file, chunk_index
+            SELECT id, chunk_text, source_file, chunk_index
             FROM chunks
             WHERE indexed_at IS NULL
             ORDER BY chunk_index
@@ -44,7 +46,7 @@ def embed_and_index():
     def embed_chunks(chunks):
         embedder = HuggingFaceEmbedder("intfloat/e5-base-v2")
         texts = [c["chunk_text"] for c in chunks]
-        embeddings = embedder.embed(texts)
+        embeddings = embedder.embed_batch(texts)
         for i, chunk in enumerate(chunks):
             chunk["embedding"] = embeddings[i]
         return chunks
@@ -52,7 +54,7 @@ def embed_and_index():
     @task
     def upsert_to_opensearch(chunks):
         store = OpenSearchStore()
-        store.upsert_chunks(chunks)
+        store.upsert_documents(chunks)
         return [c["chunk_id"] for c in chunks]
 
     @task
@@ -66,7 +68,7 @@ def embed_and_index():
         )
         cur = conn.cursor()
         cur.execute(
-            "UPDATE chunks SET indexed_at = NOW() WHERE chunk_id = ANY(%s);",
+            "UPDATE chunks SET indexed_at = NOW() WHERE id = ANY(%s);",
             (chunk_ids,)
         )
         conn.commit()

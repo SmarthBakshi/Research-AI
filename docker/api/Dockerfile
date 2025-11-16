@@ -1,14 +1,25 @@
 FROM python:3.12-slim
+
 WORKDIR /app
 
-# add curl so the compose healthcheck works
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 
-# minimal deps for the stub
-RUN pip install --no-cache-dir fastapi uvicorn
+# Copy requirements
+COPY requirements.txt .
 
-# tiny app so it boots
-COPY app /app/app
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
 
-# optional: you can also put a HEALTHCHECK here, but compose already has one
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Copy application code
+COPY app /app
+
+# Expose port
+EXPOSE 8000
+
+# Run the application
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
