@@ -549,7 +549,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [HuggingFace](https://huggingface.co/) for transformer models
 - [OpenSearch](https://opensearch.org/) for vector search
 - [Ollama](https://ollama.ai/) for local LLM inference
-- All contributors who helped improve this project
 
 ---
 
@@ -562,7 +561,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 <p align="center">
-  Made with ❤️ by the ResearchAI Team
+  Made with ❤️ by Smarth Bakshi
 </p>
 
 <p align="center">
