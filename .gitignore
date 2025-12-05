@@ -16,3 +16,4 @@ lib/
 .envrc
 !.env.example
 *.txt
+*.md
