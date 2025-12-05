@@ -1,16 +1,11 @@
 import sys
 sys.path.append("/opt/researchai")
 
-import os 
+import os
 from airflow import DAG
 from airflow.decorators import task
 from datetime import datetime, timedelta
-from services.processing.extractors.hybrid_extractor import HybridPdfExtractor
-from services.processing.ocr.tesseract_ocr import TesseractOCR
-from services.processing.normalization.text_normaliser import TextNormalizer
-from services.processing.chunking.chunker import Chunker
-from services.processing.db_write.db_writer import write_chunks_to_db
-from services.ingestion.arxiv.minio_utils import list_files, download_file
+# Heavy imports moved inside task functions to avoid DAG import timeout
 
 default_args = {
     "owner": "airflow",
@@ -31,6 +26,14 @@ with DAG(
 
     @task(execution_timeout=timedelta(minutes=10))
     def process_each_pdf(key: str):
+        # Import inside task to avoid DAG import timeout
+        from services.processing.extractors.hybrid_extractor import HybridPdfExtractor
+        from services.processing.ocr.tesseract_ocr import TesseractOCR
+        from services.processing.normalization.text_normaliser import TextNormalizer
+        from services.processing.chunking.chunker import Chunker
+        from services.processing.db_write.db_writer import write_chunks_to_db
+        from services.ingestion.arxiv.minio_utils import download_file
+
         print(f"🧪 STARTING: {key}")
         try:
             # Step 1: Initialize components
@@ -130,6 +133,9 @@ with DAG(
 
     @task()
     def list_pdf_keys():
+        # Import inside task to avoid DAG import timeout
+        from services.ingestion.arxiv.minio_utils import list_files
+
         bucket = os.getenv("MINIO_BUCKET", "researchai")
         files = list_files(bucket)
         print(f"Found {len(files)} files in bucket '{bucket}'")
