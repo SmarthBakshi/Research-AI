@@ -2,8 +2,7 @@ from airflow.decorators import dag, task
 from datetime import datetime, timedelta
 import sys
 sys.path.insert(0, '/opt/researchai')
-from services.embedding.huggingface_embedder import HuggingFaceEmbedder
-from services.search.opensearch_store import OpenSearchStore
+# Heavy imports moved inside task functions to avoid DAG import timeout
 import psycopg2
 import os
 
@@ -44,6 +43,9 @@ def embed_and_index():
 
     @task
     def embed_chunks(chunks):
+        # Import inside task to avoid DAG import timeout
+        from services.embedding.huggingface_embedder import HuggingFaceEmbedder
+
         embedder = HuggingFaceEmbedder("intfloat/e5-base-v2")
         texts = [c["chunk_text"] for c in chunks]
         embeddings = embedder.embed_batch(texts)
@@ -53,6 +55,9 @@ def embed_and_index():
 
     @task
     def upsert_to_opensearch(chunks):
+        # Import inside task to avoid DAG import timeout
+        from services.search.opensearch_store import OpenSearchStore
+
         store = OpenSearchStore()
         store.upsert_documents(chunks)
         return [c["chunk_id"] for c in chunks]
