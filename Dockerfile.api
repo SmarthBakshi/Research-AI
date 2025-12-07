@@ -10,16 +10,16 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements
-COPY requirements.txt .
+COPY docker/api/requirements.txt .
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
-COPY app /app
+COPY docker/api/app /app
 
 # Copy services directory for embedder and search
-COPY ../../services /opt/researchai/services
+COPY services /opt/researchai/services
 
 # Expose port
 EXPOSE 8000

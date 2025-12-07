@@ -17,3 +17,4 @@ lib/
 !.env.example
 *.txt
 *.md
+*.pdf

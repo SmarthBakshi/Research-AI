@@ -37,8 +37,11 @@ except ImportError:
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+psycopg2://researchai:researchai@postgres:5432/researchai_app")
 OPENSEARCH_URL = os.getenv("OPENSEARCH_URL", "http://opensearch:9200")
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://ollama:11434")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "intfloat/e5-base-v2")
 LLM_MODEL = os.getenv("LLM_MODEL", "llama3.2")
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "openai")  # "openai" or "ollama"
 
 # Parse OpenSearch URL
 opensearch_host = OPENSEARCH_URL.replace("http://", "").replace("https://", "").split(":")[0]
@@ -149,13 +152,20 @@ async def healthz():
         "opensearch": search_store is not None,
     }
 
-    # Check Ollama availability
-    try:
-        async with httpx.AsyncClient(timeout=2.0) as client:
-            response = await client.get(f"{OLLAMA_URL}/api/tags")
-            services["ollama"] = response.status_code == 200
-    except Exception:
-        services["ollama"] = False
+    # Check LLM provider availability
+    if LLM_PROVIDER == "openai":
+        services["llm"] = bool(OPENAI_API_KEY)
+        services["llm_provider"] = "openai"
+    else:
+        # Check Ollama availability
+        try:
+            async with httpx.AsyncClient(timeout=2.0) as client:
+                response = await client.get(f"{OLLAMA_URL}/api/tags")
+                services["llm"] = response.status_code == 200
+                services["llm_provider"] = "ollama"
+        except Exception:
+            services["llm"] = False
+            services["llm_provider"] = "ollama"
 
     return {
         "status": "ok",
@@ -280,26 +290,61 @@ Question: {request.question}
 
 Answer:"""
 
-        try:
-            async with httpx.AsyncClient(timeout=60.0) as client:
-                response = await client.post(
-                    f"{OLLAMA_URL}/api/generate",
-                    json={
-                        "model": LLM_MODEL,
-                        "prompt": prompt,
-                        "temperature": request.temperature,
-                        "stream": False
-                    }
-                )
+        model_used = ""
 
-                if response.status_code != 200:
-                    raise HTTPException(
-                        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                        detail="LLM service unavailable"
+        try:
+            if LLM_PROVIDER == "openai" and OPENAI_API_KEY:
+                # Use OpenAI API
+                async with httpx.AsyncClient(timeout=60.0) as client:
+                    response = await client.post(
+                        "https://api.openai.com/v1/chat/completions",
+                        headers={
+                            "Authorization": f"Bearer {OPENAI_API_KEY}",
+                            "Content-Type": "application/json"
+                        },
+                        json={
+                            "model": OPENAI_MODEL,
+                            "messages": [
+                                {"role": "system", "content": "You are a helpful research assistant."},
+                                {"role": "user", "content": prompt}
+                            ],
+                            "temperature": request.temperature,
+                            "max_tokens": 1000
+                        }
                     )
 
-                llm_response = response.json()
-                answer = llm_response.get("response", "").strip()
+                    if response.status_code != 200:
+                        raise HTTPException(
+                            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                            detail=f"OpenAI API error: {response.text}"
+                        )
+
+                    openai_response = response.json()
+                    answer = openai_response["choices"][0]["message"]["content"].strip()
+                    model_used = OPENAI_MODEL
+
+            else:
+                # Use Ollama
+                async with httpx.AsyncClient(timeout=60.0) as client:
+                    response = await client.post(
+                        f"{OLLAMA_URL}/api/generate",
+                        json={
+                            "model": LLM_MODEL,
+                            "prompt": prompt,
+                            "temperature": request.temperature,
+                            "stream": False
+                        }
+                    )
+
+                    if response.status_code != 200:
+                        raise HTTPException(
+                            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                            detail="LLM service unavailable"
+                        )
+
+                    llm_response = response.json()
+                    answer = llm_response.get("response", "").strip()
+                    model_used = LLM_MODEL
 
         except httpx.TimeoutException:
             raise HTTPException(
@@ -307,15 +352,16 @@ Answer:"""
                 detail="LLM request timed out"
             )
         except httpx.ConnectError:
-            # Fallback if Ollama is not available
+            # Fallback if LLM is not available
             answer = f"Based on {len(citations)} relevant research papers, I found information related to your question. However, the LLM service is currently unavailable. Please check the retrieved citations below."
+            model_used = "fallback"
 
         return AskResponse(
             question=request.question,
             answer=answer,
             citations=citations,
             retrieved_chunks=len(citations),
-            model=LLM_MODEL
+            model=model_used
         )
 
     except HTTPException:
