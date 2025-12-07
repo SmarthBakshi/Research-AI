@@ -4,19 +4,24 @@ Check the current indexing status in Cloud SQL
 """
 import os
 import psycopg2
+from dotenv import load_dotenv
 
-os.environ["POSTGRES_HOST"] = "35.246.234.51"
-os.environ["POSTGRES_USER"] = "postgres"
-os.environ["POSTGRES_PASSWORD"] = "ResearchAI2024Secure!"
-os.environ["APP_DB"] = "researchai"
-os.environ["POSTGRES_PORT"] = "5432"
+# Load environment variables from .env file
+load_dotenv()
+
+# Get configuration from environment variables
+POSTGRES_HOST = os.getenv("GCP_POSTGRES_HOST")
+POSTGRES_USER = os.getenv("GCP_POSTGRES_USER")
+POSTGRES_PASSWORD = os.getenv("GCP_POSTGRES_PASSWORD")
+POSTGRES_DB = os.getenv("GCP_POSTGRES_DB")
+POSTGRES_PORT = os.getenv("GCP_POSTGRES_PORT", "5432")
 
 conn = psycopg2.connect(
-    host=os.environ["POSTGRES_HOST"],
-    user=os.environ["POSTGRES_USER"],
-    password=os.environ["POSTGRES_PASSWORD"],
-    database=os.environ["APP_DB"],
-    port=os.environ["POSTGRES_PORT"]
+    host=POSTGRES_HOST,
+    user=POSTGRES_USER,
+    password=POSTGRES_PASSWORD,
+    database=POSTGRES_DB,
+    port=POSTGRES_PORT
 )
 cur = conn.cursor()
 

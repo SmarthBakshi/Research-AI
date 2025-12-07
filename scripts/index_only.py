@@ -4,6 +4,10 @@ Index existing chunks from Cloud SQL into OpenSearch
 """
 import os
 import sys
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Add services to path
 sys.path.insert(0, '/Users/smarthbakshi/Desktop/projects/Research-AI')
@@ -13,14 +17,14 @@ from services.search.opensearch_store import OpenSearchStore
 import psycopg2
 from datetime import datetime
 
-# Configuration
-OPENSEARCH_HOST = "34.179.167.137"
-OPENSEARCH_PORT = 9200
-os.environ["POSTGRES_HOST"] = "35.246.234.51"
-os.environ["POSTGRES_USER"] = "postgres"
-os.environ["POSTGRES_PASSWORD"] = "ResearchAI2024Secure!"
-os.environ["APP_DB"] = "researchai"
-os.environ["POSTGRES_PORT"] = "5432"
+# Configuration from environment variables
+OPENSEARCH_HOST = os.getenv("GCP_OPENSEARCH_HOST")
+OPENSEARCH_PORT = int(os.getenv("GCP_OPENSEARCH_PORT", "9200"))
+POSTGRES_HOST = os.getenv("GCP_POSTGRES_HOST")
+POSTGRES_USER = os.getenv("GCP_POSTGRES_USER")
+POSTGRES_PASSWORD = os.getenv("GCP_POSTGRES_PASSWORD")
+POSTGRES_DB = os.getenv("GCP_POSTGRES_DB")
+POSTGRES_PORT = os.getenv("GCP_POSTGRES_PORT", "5432")
 
 def main():
     print("🔍 Indexing chunks into OpenSearch...")
@@ -41,11 +45,11 @@ def main():
 
     # Get all unindexed chunks from database
     conn = psycopg2.connect(
-        host=os.environ["POSTGRES_HOST"],
-        user=os.environ["POSTGRES_USER"],
-        password=os.environ["POSTGRES_PASSWORD"],
-        database=os.environ["APP_DB"],
-        port=os.environ["POSTGRES_PORT"]
+        host=POSTGRES_HOST,
+        user=POSTGRES_USER,
+        password=POSTGRES_PASSWORD,
+        database=POSTGRES_DB,
+        port=POSTGRES_PORT
     )
     cur = conn.cursor()
 

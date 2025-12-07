@@ -6,6 +6,10 @@ This runs outside of Airflow for quick GCP deployment
 import os
 import sys
 import tempfile
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Add services to path
 sys.path.insert(0, '/Users/smarthbakshi/Desktop/projects/Research-AI')
@@ -18,15 +22,17 @@ from services.processing.db_write.db_writer import write_chunks_to_db
 from services.embedding.huggingface_embedder import HuggingFaceEmbedder
 from services.search.opensearch_store import OpenSearchStore
 
-# Configuration
+# Configuration from environment variables
 BUCKET_NAME = "researchai-pdfs-eu"
-OPENSEARCH_HOST = "34.179.167.137"
-OPENSEARCH_PORT = 9200
-os.environ["POSTGRES_HOST"] = "35.246.234.51"
-os.environ["POSTGRES_USER"] = "postgres"
-os.environ["POSTGRES_PASSWORD"] = "ResearchAI2024Secure!"
-os.environ["APP_DB"] = "researchai"
-os.environ["POSTGRES_PORT"] = "5432"
+OPENSEARCH_HOST = os.getenv("GCP_OPENSEARCH_HOST")
+OPENSEARCH_PORT = int(os.getenv("GCP_OPENSEARCH_PORT", "9200"))
+
+# Set environment variables for db_writer
+os.environ["POSTGRES_HOST"] = os.getenv("GCP_POSTGRES_HOST")
+os.environ["POSTGRES_USER"] = os.getenv("GCP_POSTGRES_USER")
+os.environ["POSTGRES_PASSWORD"] = os.getenv("GCP_POSTGRES_PASSWORD")
+os.environ["APP_DB"] = os.getenv("GCP_POSTGRES_DB")
+os.environ["POSTGRES_PORT"] = os.getenv("GCP_POSTGRES_PORT", "5432")
 
 def download_pdf_from_gcs(bucket_name, blob_name):
     """Download PDF from GCS to temporary file"""
