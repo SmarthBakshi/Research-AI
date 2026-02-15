@@ -192,8 +192,8 @@ services:
 
   api:
     build:
-      context: ./docker/api
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: Dockerfile.api
     container_name: researchai-api
     depends_on:
       postgres:
@@ -227,8 +227,8 @@ services:
 
   ui:
     build:
-      context: ./docker/ui
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: Dockerfile.ui
     container_name: researchai-ui
     depends_on:
       api:

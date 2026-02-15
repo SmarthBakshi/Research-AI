@@ -114,11 +114,11 @@ jobs:
 
       - name: Build API image
         run: |
-          docker build -f docker/api/Dockerfile -t researchai-api:test docker/api/
+          docker build -f Dockerfile.api -t researchai-api:test .
 
       - name: Build UI image
         run: |
-          docker build -f docker/ui/Dockerfile -t researchai-ui:test docker/ui/
+          docker build -f Dockerfile.ui -t researchai-ui:test .
 
       - name: Test docker-compose config
         run: |
