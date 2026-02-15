@@ -7,7 +7,7 @@
 
 An end-to-end **Retrieval-Augmented Generation (RAG) system** for scientific papers from arXiv. Built with production-grade MLOps best practices and modular architecture for scalability, latency optimization, and reliability.
 
-**📺 [Watch the Project Walkthrough](https://youtu.be/twXECdaWkBg)**
+**🌐 [Live Demo](https://researchai-ui-339551726466.europe-west3.run.app)** | **📺 [Watch the Project Walkthrough](https://youtu.be/twXECdaWkBg)**
 
 ![Architecture Diagram](docs/architecture.gif)
 
